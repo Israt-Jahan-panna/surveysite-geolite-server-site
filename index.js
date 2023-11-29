@@ -3,12 +3,15 @@ var cors = require('cors');
 require('dotenv').config();
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const app = express();
-const port = process.env.PORT || 4100
+const port = process.env.PORT || 4200
 // midelwire
-app.use(cors({
-  origin: ['https://geolite-client-site.web.app'],
-  credentials:true
-}));
+app.use(cors(
+
+    // {
+    //     origin: ['https://geolite-client-site.web.app'],
+    //     credentials:true
+    //   }
+));
 app.use(express.json());
 
 // mongodb connections 
@@ -25,7 +28,7 @@ const client = new MongoClient(uri, {
 async function run() {
     try {
       // Connect the client to the server	(optional starting in v4.7)
-      // await client.connect();
+    //   await client.connect();
       // Send a ping to confirm a successful connection
       await client.db("admin").command({ ping: 1 });
       console.log("Pinged your deployment. You successfully connected to MongoDB!");
@@ -34,6 +37,27 @@ async function run() {
       // await client.close();
     }
   }
+
+  // added new seurvey 
+const surveyCollection = client.db("geoliteDB").collection("addSurvey");
+
+// 
+
+app.get('/survey' , async(req , res ) => {
+    const cursor = surveyCollection.find();
+    const result = await cursor.toArray();
+    res.send(result);
+  })
+  
+  // add new jobs
+  app.post('/survey', async (req , res) =>{
+      const surveyData = req.body ;
+      console.log(surveyData);
+      const result = await surveyCollection.insertOne(surveyData);
+      res.send(result)
+  })
+
+
   run().catch(console.dir);
 app.get('/', (req, res) => {
     res.send('geolitesite')
