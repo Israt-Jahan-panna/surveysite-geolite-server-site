@@ -7,10 +7,10 @@ const port = process.env.PORT || 4200
 // midelwire
 app.use(cors(
 
-    // {
-    //     origin: ['https://geolite-client-site.web.app'],
-    //     credentials:true
-    //   }
+    {
+        origin: ['https://geolite-client-site.web.app'],
+        credentials:true
+      }
 ));
 app.use(express.json());
 
@@ -60,6 +60,8 @@ async function run() {
       res.send(result)
     })
 
+
+
     app.get('/users/admin/:email', async (req, res) => {
       const email = req.params.email;
       const query = { email: email };
@@ -70,7 +72,7 @@ async function run() {
       }
       res.send({ admin });
     })
-
+   
     app.post('/users', async (req, res) => {
       const user = req.body;
       // insert email if user doesnt exists: 
@@ -84,6 +86,20 @@ async function run() {
       res.send(result);
     });
 
+
+    // user role pro update 
+    app.patch('/users/:id', async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const updatedDoc = {
+        $set: {
+          role: 'Pro User'
+        }
+      }
+      const result = await userCollection.updateOne(filter, updatedDoc);
+      res.send(result);
+    })
+// admin 
     app.patch('/users/admin/:id', async (req, res) => {
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
@@ -104,12 +120,46 @@ async function run() {
     })
 
 // --------
+// surveyor add 
+app.get('/users/surveyor/:email', async (req, res) => {
+  const email = req.params.email;
+  const query = { email: email };
+  const user = await userCollection.findOne(query);
+  let admin = false;
+  if (user) {
+    surveyor= user?.role === 'surveyor';
+  }
+  res.send({ surveyor });
+})
 
+app.patch('/users/surveyor/:id', async (req, res) => {
+  const id = req.params.id;
+  const filter = { _id: new ObjectId(id) };
+  const updatedDoc = {
+    $set: {
+      role: 'surveyor'
+    }
+  }
+  const result = await userCollection.updateOne(filter, updatedDoc);
+  res.send(result);
+})
+    // add comments collections 
+const commentsCollection = client.db("geoliteDB").collection("addcomments");
+app.get('/survey/comments/:id' , async(req , res ) => {
+  const cursor = commentsCollection.find();
+  const result = await cursor.toArray();
+  res.send(result);
+})
 
-    
-  // added new seurvey 
+// add new survey
+app.post('/survey/comments/:id', async (req , res) =>{
+    const commentsData = req.body ;
+    console.log(commentsData);
+    const result = await commentsCollection.insertOne(commentsData);
+    res.send(result)
+})
+// added new seurvey 
 const surveyCollection = client.db("geoliteDB").collection("addSurvey");
-
 // 
 
 app.get('/survey' , async(req , res ) => {
@@ -143,7 +193,7 @@ app.get('/survey/:id', async (req, res) => {
   res.send(result)
   })
 
-
+// like dislike 
 
   app.put('/survey/:id', async (req, res) => {
    const id=req.params.id;
@@ -191,6 +241,41 @@ app.put('/survey/dislike/:id', async (req, res) => {
   const result = await surveyCollection.updateOne(filter, updateDoc, options)
   res.send(result)
 })
+
+// yes no vote
+app.put('/survey/no/:id', async (req, res) => {
+  const id = req.params.id;
+  const filter = { _id: new ObjectId(id) }
+  const data = await surveyCollection.findOne(filter)
+  const options = { upsert: true }
+
+  const updateDoc = {
+      $set: {
+        
+totalVoteCount:data.totalVoteCount + 0,
+      },
+  }
+  const result = await surveyCollection.updateOne(filter, updateDoc, options)
+  res.send(result)
+})
+
+app.put('/survey/yes/:id', async (req, res) => {
+  const id = req.params.id;
+  const filter = { _id: new ObjectId(id) }
+  const data = await surveyCollection.findOne(filter)
+  const options = { upsert: true }
+
+  const updateDoc = {
+      $set: {
+        
+totalVoteCount:data.totalVoteCount + 1,
+      },
+  }
+  const result = await surveyCollection.updateOne(filter, updateDoc, options)
+  res.send(result)
+})
+
+
 
   run().catch(console.dir);
 app.get('/', (req, res) => {
